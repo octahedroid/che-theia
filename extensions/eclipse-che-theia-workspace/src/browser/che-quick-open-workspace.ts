@@ -20,9 +20,11 @@ import { WorkspaceCommands } from '@theia/workspace/lib/browser/workspace-comman
 import { CheApiService } from '@eclipse-che/theia-plugin-ext/lib/common/che-protocol';
 import { che as cheApi } from '@eclipse-che/api';
 import { OauthUtils } from '@eclipse-che/theia-plugin-ext/lib/browser/oauth-utils';
-import { ConfirmDialog } from '@theia/core/lib/browser/dialogs';
+import { AbstractDialog } from '@theia/core/lib/browser/dialogs';
 import { MessageService } from '@theia/core/lib/common/message-service';
 import * as moment from 'moment';
+import { Message } from "@theia/core/lib/browser/widgets/index";
+import { Key } from "@theia/core/lib/browser/keyboard/keys";
 
 @injectable()
 export class QuickOpenCheWorkspace implements QuickOpenModel, CommandContribution {
@@ -157,41 +159,69 @@ export class QuickOpenCheWorkspace implements QuickOpenModel, CommandContributio
     }
 
     private stopCurrentWorkspace(): Promise<boolean | undefined> {
-        return new ConfirmDialog({
-            title: 'Open Workspace',
-            msg: 'Do you want to stop current workspace?'
-        }).open();
+        class StopWorkspaceDialog extends AbstractDialog<boolean | undefined> {
+            protected confirmed:boolean | undefined = true;
+            protected readonly dontStopButton: HTMLButtonElement;
+
+            constructor() {
+                super({
+                    title: 'Open Workspace'
+                });
+
+                this.contentNode.appendChild(this.createMessageNode('Do you want to stop current workspace?'));
+                this.appendCloseButton('Close');
+                this.appendAcceptButton('Yes');
+                this.dontStopButton = this.appendDontStopButton();
+            }
+
+            get value(): boolean | undefined {
+                return this.confirmed;
+            }
+
+            protected appendDontStopButton(): HTMLButtonElement {
+                const button = this.createButton('No');
+                this.controlPanel.appendChild(button);
+                button.classList.add('secondary');
+                return button;
+            }
+
+            protected onAfterAttach(msg: Message): void {
+                super.onAfterAttach(msg);
+                this.addKeyListener(this.dontStopButton, Key.ENTER, () => {
+                    this.confirmed = false;
+                    this.accept();
+                }, 'click');
+            }
+
+            protected onCloseRequest(msg: Message): void {
+                super.onCloseRequest(msg);
+                this.confirmed = undefined;
+                this.accept();
+            }
+
+            protected createMessageNode(msg: string | HTMLElement): HTMLElement {
+                if (typeof msg === 'string') {
+                    const messageNode = document.createElement('div');
+                    messageNode.textContent = msg;
+                    return messageNode;
+                }
+                return msg;
+            }
+
+        }
+
+        return new StopWorkspaceDialog().open();
     }
 
     private async openWorkspace(workspace: cheApi.workspace.Workspace): Promise<void> {
-        // const currentWorkspaceUri = await this.getCurrentWorkspaceUri();
-        // if (currentWorkspaceUri === undefined) {
-        //     await this.messageService.warn('Failed to get current workspace URL.');
-        //     return;
-        // }
-
-        if (await this.stopCurrentWorkspace()) {
-            await this.cheApi.stop();
+        const result = await this.stopCurrentWorkspace();
+        if (typeof result === 'boolean') {
+            if (result) {
+                await this.cheApi.stop();
+            }
+            window.parent.postMessage(`open-workspace:${workspace.id}`, '*');
         }
-
-        window.parent.postMessage(`open-workspace:${workspace.id}`, '*');
-
-        // window.location.href = currentWorkspaceUri.replace(/^https?:\/\/[^\/]+/, match => `${match}/dashboard/${this.getWorkspaceUri(workspace)}`);
     }
-
-    // private async getCurrentWorkspaceUri(): Promise<string | undefined> {
-    //     const workspace = await this.cheApi.currentWorkspace();
-    //
-    //     if (workspace && workspace.links && workspace.links.ide) {
-    //         return workspace.links.ide;
-    //     } else {
-    //         return undefined;
-    //     }
-    // }
-
-    // private getWorkspaceUri(workspace: cheApi.workspace.Workspace): string {
-    //     return '#/ide/' + (workspace ? (workspace.namespace + '/' + this.getWorkspaceName(workspace)) : 'unknown');
-    // }
 
     private isCurrentWorkspace(workspace: cheApi.workspace.Workspace): boolean {
         return this.currentWorkspace.id === workspace.id;
