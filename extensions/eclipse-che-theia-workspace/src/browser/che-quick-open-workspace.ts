@@ -23,8 +23,8 @@ import { OauthUtils } from '@eclipse-che/theia-plugin-ext/lib/browser/oauth-util
 import { AbstractDialog } from '@theia/core/lib/browser/dialogs';
 import { MessageService } from '@theia/core/lib/common/message-service';
 import * as moment from 'moment';
-import { Message } from "@theia/core/lib/browser/widgets/index";
-import { Key } from "@theia/core/lib/browser/keyboard/keys";
+import { Message } from '@theia/core/lib/browser/widgets/index';
+import { Key } from '@theia/core/lib/browser/keyboard/keys';
 
 @injectable()
 export class QuickOpenCheWorkspace implements QuickOpenModel, CommandContribution {
@@ -160,7 +160,7 @@ export class QuickOpenCheWorkspace implements QuickOpenModel, CommandContributio
 
     private stopCurrentWorkspace(): Promise<boolean | undefined> {
         class StopWorkspaceDialog extends AbstractDialog<boolean | undefined> {
-            protected confirmed:boolean | undefined = true;
+            protected confirmed: boolean | undefined = true;
             protected readonly dontStopButton: HTMLButtonElement;
 
             constructor() {
