@@ -169,9 +169,9 @@ export class QuickOpenCheWorkspace implements QuickOpenModel, CommandContributio
                 });
 
                 this.contentNode.appendChild(this.createMessageNode('Do you want to stop current workspace?'));
-                this.appendCloseButton('Close');
-                this.appendAcceptButton('Yes');
+                this.appendCloseButton('Cancel');
                 this.dontStopButton = this.appendDontStopButton();
+                this.appendAcceptButton('Yes');
             }
 
             get value(): boolean | undefined {
