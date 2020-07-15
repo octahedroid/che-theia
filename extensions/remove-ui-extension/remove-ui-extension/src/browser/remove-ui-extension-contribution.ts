@@ -1,33 +1,36 @@
-import { injectable, inject } from "inversify";
-import { CommandContribution, CommandRegistry, MenuContribution, MenuModelRegistry, MessageService } from "@theia/core/lib/common";
-import { CommonMenus } from "@theia/core/lib/browser";
-
-export const RemoveUiExtensionCommand = {
-    id: 'RemoveUiExtension.command',
-    label: "Say Hello"
-};
-
-@injectable()
-export class RemoveUiExtensionCommandContribution implements CommandContribution {
-
-    constructor(
-        @inject(MessageService) private readonly messageService: MessageService,
-    ) { }
-
-    registerCommands(registry: CommandRegistry): void {
-        registry.registerCommand(RemoveUiExtensionCommand, {
-            execute: () => this.messageService.info('Hello World!')
-        });
-    }
-}
+import { injectable } from "inversify";
+import {
+  FrontendApplicationContribution,
+  FrontendApplication,
+} from "@theia/core/lib/browser";
+import { MaybePromise } from "@theia/core/lib/common/types";
+import { Widget } from "@theia/core/lib/browser/widgets";
 
 @injectable()
-export class RemoveUiExtensionMenuContribution implements MenuContribution {
-
-    registerMenus(menus: MenuModelRegistry): void {
-        menus.registerMenuAction(CommonMenus.EDIT_FIND, {
-            commandId: RemoveUiExtensionCommand.id,
-            label: RemoveUiExtensionCommand.label
-        });
-    }
+export class ExampleFrontendContribution
+  implements FrontendApplicationContribution {
+  /**
+   * Called after the application shell has been attached in case there is no previous workbench layout state.
+   * Should return a promise if it runs asynchronously.
+   */
+  onDidInitializeLayout(app: FrontendApplication): MaybePromise<void> {
+    // Remove unused widgets
+    app.shell.widgets.forEach((widget: Widget) => {
+      console.log("Widget:");
+      console.log(widget);
+      console.table(widget);
+      console.log(JSON.stringify(widget));
+      if (
+        [
+          "search-in-workspace",
+          "explorer-view-container",
+          "scm-view-container",
+          "scm-view",
+        ].includes(widget.id) ||
+        widget.id.startsWith("debug")
+      ) {
+        widget.dispose();
+      }
+    });
+  }
 }
